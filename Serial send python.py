@@ -4,7 +4,7 @@ import time
 arduino = serial.Serial(port='COM6', baudrate=115200, timeout=.1)
 
 def write_read(x):
-    arduino.write(x.encode())  # Encoding the string and sending it
+    arduino.wrsate(x.encode())  # Encoding the string and sending it
     time.sleep(0.03)
     data = arduino.readline().decode()  # Decoding the received bytes to string
     return data
