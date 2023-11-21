@@ -19,8 +19,7 @@ def read():
 
 while True:
     text = input("Enter a string: ")
-    value = write_read(text)
-    print(value)
+    value = write_read(text) 
     
     
 """

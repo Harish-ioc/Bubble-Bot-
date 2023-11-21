@@ -1,4 +1,6 @@
- #include <LedControl.h> // include led control library
+#include <LedControl.h> // include led control library
+#include <Wire.h>
+
 int DIN = 10; // define DIN pin to digital pin 10
 int CS =  11; // define CS pin to digital pin 11
 int CLK = 12; // define CLK to digital pin 12
@@ -7,8 +9,13 @@ int din_mid=5;
 int cs_mid=6;
 int clk_mid=7;
 
+int brightness=5;  // 0 to 15
 
-String message; // variable for serial communicaiton
+int Lf=3;
+int Lb=9;
+int Rf=10;
+int Rb=11;
+
 
 // byte s[]=   {0xB77C,0x00,0x7C,0x60,0x7C,0x0C,0x7C,0x00}; // letter s byte arrays custom character
 // byte t[]=   {0x00,0x00,0x7C,0x10,0x10,0x10,0x10,0x00}; // letter t byte arrays custom character
@@ -24,6 +31,13 @@ LedControl lc_m=LedControl(din_mid,clk_mid,cs_mid,0);
 
 bool t=true;
 bool f=false;
+
+
+
+
+
+
+
 
 int randomnumber(int min, int max) {
   // Initialize the random seed
@@ -57,7 +71,7 @@ void clear(){
 
 void blink(int blink_speed){  
 
-int btwCO = randomnumber(10,2000);  // btwCO = delay between eye closing and opening
+int btwCO = randomnumber(10,5000);  // btwCO = delay between eye closing and opening
 
 glow_m(1,1,2,6,t); glow_m(2,1,1,5,t); // L1
 glow_m(1,2,1,7,t); glow_m(2,2,0,6,t); // L2
@@ -286,68 +300,175 @@ delay(hold);
 
 }
 
+void forward(int speed){
+  analogWrite(Lf,speed);
+  analogWrite(Rf,speed);
+  analogWrite(Lb,0);
+  analogWrite(Rb,0);
+}
+
+void backward(int speed){
+  analogWrite(Lb,speed);
+  analogWrite(Rb,speed);
+  analogWrite(Lf,0);
+  analogWrite(Rf,0);
+}
+
+void right(int speed){
+  analogWrite(Lf,speed);
+  analogWrite(Rb,speed);
+  analogWrite(Rf,0);
+  analogWrite(Lb,0);
+}
+
+void left(int speed){
+  analogWrite(Lb,speed);
+  analogWrite(Rf,speed);
+  analogWrite(Rb,0);
+  analogWrite(Lf,0);
+}
+
+void stop(){
+  analogWrite(Lf,0);
+  analogWrite(Rb,0);
+  analogWrite(Rf,0);
+  analogWrite(Lb,0);
+}
+
+
+
+String command;
+
 void setup(){
 
-//Serial communication with Raspberry 
-Serial.begin(115200);
-Serial.setTimeout(1);
+  pinMode(Lf,OUTPUT);
+  pinMode(Lb,OUTPUT);
+  pinMode(Rf,OUTPUT);
+  pinMode(Rb,OUTPUT);
 
  lc.shutdown(0,false);       //The MAX72XX is in power-saving mode on startup
- lc.setIntensity(0,5);      // Set the brightness, the maximum is 0,15
+ lc.setIntensity(0,brightness);      // Set the brightness, the maximum is 0,15
  lc.clearDisplay(0);         // and clear the display
 
  lc_m.shutdown(0,false);       //The MAX72XX is in power-saving mode on startup
- lc_m.setIntensity(0,1);      // Set the brightness, the maximum is 0,15
+ lc_m.setIntensity(0,brightness);      // Set the brightness, the maximum is 0,15
  lc_m.clearDisplay(0);
 
  //----------
 
   lc.shutdown(1,false);       //The MAX72XX is in power-saving mode on startup
- lc.setIntensity(1,5);      // Set the brightness, the maximum is 0,15
+ lc.setIntensity(1,brightness);      // Set the brightness, the maximum is 0,15
  lc.clearDisplay(1);         // and clear the display
 
  lc_m.shutdown(1,false);       //The MAX72XX is in power-saving mode on startup
- lc_m.setIntensity(1,1);      // Set the brightness, the maximum is 0,15
+ lc_m.setIntensity(1,brightness);      // Set the brightness, the maximum is 0,15
  lc_m.clearDisplay(1);
 
  //--------
 
   lc.shutdown(2,false);       //The MAX72XX is in power-saving mode on startup
- lc.setIntensity(2,5);      // Set the brightness, the maximum is 0,15
+ lc.setIntensity(2,brightness);      // Set the brightness, the maximum is 0,15
  lc.clearDisplay(2);         // and clear the display
 
  lc_m.shutdown(2,false);       //The MAX72XX is in power-saving mode on startup
- lc_m.setIntensity(2,1);      // Set the brightness, the maximum is 0,15
+ lc_m.setIntensity(2,brightness);      // Set the brightness, the maximum is 0,15
  lc_m.clearDisplay(2);
 
  //------
 
   lc.shutdown(3,false);       //The MAX72XX is in power-saving mode on startup
- lc.setIntensity(3,5);      // Set the brightness, the maximum is 0,15
+ lc.setIntensity(3,brightness);      // Set the brightness, the maximum is 0,15
  lc.clearDisplay(3);         // and clear the display
 
  lc_m.shutdown(3,false);       //The MAX72XX is in power-saving mode on startup
- lc_m.setIntensity(3,1);      // Set the brightness, the maximum is 0,15
+ lc_m.setIntensity(3,brightness);      // Set the brightness, the maximum is 0,15
  lc_m.clearDisplay(3);
+
+ lc.shutdown(4,false);
+ lc.setIntensity(4,brightness);
+ lc.clearDisplay(4);
+
+ lc.shutdown(5,false);
+ lc.setIntensity(5,brightness);
+ lc.clearDisplay(5);
+
+ lc.shutdown(6,false);
+ lc.setIntensity(6,brightness);
+ lc.clearDisplay(6);
+
+ lc.shutdown(7,false);
+ lc.setIntensity(7,brightness);
+ lc.clearDisplay(7);
+
+Serial.begin(115200);
+Serial.setTimeout(1);
+
 }
 
+int count = 0;
+int randomNumber = random(1,25);
+
 void loop(){  
+  /* 1=happy 2=wink 3=anger */
 
-  while(!Serial.available());
-  message = Serial.readStringUntil('\n'); // reads string untill new line
-  message.trim(); // remove potential whitespace
-  message.toUpperCase();
+  while (!Serial.available());
+  command = Serial.readStringUntil('\n'); 
+  command.trim();   // Command String is containing All command values
+  Serial.print(command);
 
-  /*
-  1=happy
-  2=wink
-  3=anger
-  */
+/*
+  int blink_speed=5;
+  if (count == randomNumber) {
+    // Serial.println("Value Changed");
+
+    // Eye closing
+    glow_m(1,1,2,6,f); glow_m(2,1,1,5,f); // L1
+    delay(blink_speed);
+    glow_m(1,7,2,6,f); glow_m(2,7,1,5,f); // L7
+    delay(blink_speed);
+    glow_m(1,2,1,7,f); glow_m(2,2,0,6,f); // L2
+    delay(blink_speed);
+    glow_m(1,3,1,7,f); glow_m(2,3,0,6,f); // L3
+    delay(blink_speed);
+    glow_m(1,6,1,7,f); glow_m(2,6,0,6,f); // L6
+    delay(blink_speed);
+    glow_m(1,4,1,7,f); glow_m(2,4,0,6,f); // L4
+    delay(blink_speed);
+
+    // Closed 
+    // Eye Opening--------
+    glow_m(1,4,1,7,t); glow_m(2,4,0,6,t); // L4
+    delay(blink_speed);
+    glow_m(1,6,1,7,t); glow_m(2,6,0,6,t); // L6
+    delay(blink_speed);
+    glow_m(1,3,1,7,t); glow_m(2,3,0,6,t); // L3
+    delay(blink_speed);
+    glow_m(1,2,1,7,t); glow_m(2,2,0,6,t); // L2
+    delay(blink_speed);
+    glow_m(1,7,2,6,t); glow_m(2,7,1,5,t); // L7
+    delay(blink_speed);
+    glow_m(1,1,2,6,t); glow_m(2,1,1,5,t); // L1
+    delay(blink_speed);
+
+    count = 0; // Reset count to 0
+    randomNumber = random(1, 25); // Generate a new random number
+
+  }else {
+    // Serial.println("Same");
+    glow_m(1,1,2,6,t); glow_m(2,1,1,5,t); // L1
+    glow_m(1,2,1,7,t); glow_m(2,2,0,6,t); // L2
+    glow_m(1,3,1,7,t); glow_m(2,3,0,6,t); // L3
+    glow_m(1,4,1,7,t); glow_m(2,4,0,6,t); // L4
+    glow_m(1,5,1,7,t); glow_m(2,5,0,6,t); // L5  // not closed 
+    glow_m(1,6,1,7,t); glow_m(2,6,0,6,t); // L6
+    glow_m(1,7,2,6,t); glow_m(2,7,1,5,t); // L7
+
+    count++; 
+  }
+
   
-
-
-
-
+*/
+// eye closing -------
 
 
 }
